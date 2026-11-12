@@ -38,19 +38,34 @@ enum EventType {
 }
 
 
+// User Model
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  passwordHash String
+  firstName String
+  lastName String
+  isEmailVerified Boolean @default(false)
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+
+
 //Venue model
 model Venue {
-  id          String  @id @default(uuid())
-  
-  name        String
-  address     String
-  city        String
-  state       String?
-  country     String
-  capacity    Int?
-  latitude    Float?
-  longitude   Float?  
-  events Event[]
+  id String @id @default(uuid())
+
+  name      String
+  address   String
+  city      String
+  state     String?
+  country   String
+  capacity  Int?
+  latitude  Float?
+  longitude Float?
+  events    Event[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -58,52 +73,46 @@ model Venue {
 
 // Event model
 model Event {
-  id Int @id @default(autoincrement())
-  slug String
-  title String
-  description String?
-  accentColor String?
-  CoverImage String?
-  startDate   DateTime
-  endDate     DateTime
-  status      EventStatus @default(DRAFT)
-  organizerId Int
-  locationType EventType @default(PHYSICAL)
-  venueId String?
-  venue   Venue? @relation(fields: [venueId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String      @id @default(uuid())
+  slug         String      @unique
+  title        String
+  description  String?
+  accentColor  String?
+  CoverImage   String?
+  startDate    DateTime
+  endDate      DateTime
+  status       EventStatus @default(DRAFT)
+  organizerId  String
+  locationType EventType   @default(PHYSICAL)
+  venueId      String?
+  venue        Venue?      @relation(fields: [venueId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
   @@index([status, startDate])
   @@index([organizerId])
-
 }
-`
-
-//Venue Model
-
-
 
 //TicketType Model
 model TicketType {
-   id          String  @id @default(uuid())
-   name String?
-   description String
-   price Int
-   quantity Int
-   currency    String  @default("NGN")
-   sold        Int     @default(0)
- salesStart  DateTime?
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  price       Int
+  quantity    Int
+  currency    String    @default("NGN")
+  sold        Int       @default(0)
+  salesStart  DateTime?
   salesEnd    DateTime?
-  eventId String
+  eventId     String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-
-//Catgeory model
+//Category model
 model Category {
-  id     String  @id @default(uuid())
-  name   String  @unique
-  slug   String  @unique
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
 }
