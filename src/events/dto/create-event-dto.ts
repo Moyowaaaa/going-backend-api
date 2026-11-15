@@ -1,5 +1,8 @@
 
 import {
+    ArrayMaxSize,
+    IsArray,
+    IsEnum,
     IsString,
     IsNotEmpty,
     IsOptional,
@@ -9,7 +12,10 @@ import {
     MaxLength,
     MinLength,
   } from 'class-validator';
-  
+import { EventCategory } from '../../generated/prisma/enums.js';
+
+  export const MAX_EVENT_CATEGORIES = 5;
+
   export class CreateEventDto {
     @IsString()
     @IsNotEmpty()
@@ -40,8 +46,22 @@ import {
     @IsOptional()
     @IsUUID()
     venueId?: string;
+    
 
     @IsOptional()
     accentColor?: string
+
+    /**
+     * Optional. Omit it (or send an empty array) and the event is filed
+     * under OTHER. "OTHER" can't be combined with any other category.
+     */
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(MAX_EVENT_CATEGORIES)
+    @IsEnum(EventCategory, {
+      each: true,
+      message: `each category must be one of: ${Object.values(EventCategory).join(', ')}`,
+    })
+    categories?: EventCategory[];
   }
   

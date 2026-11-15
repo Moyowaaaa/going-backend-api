@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -8,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateEventDTO } from './dto/update-event-dto.js';
 import { CreateEventDto } from './dto/create-event-dto.js';
 import { generateEventSlug } from '../common/utils/slug.util.js';
+import { EventCategory } from '../generated/prisma/enums.js';
 
 @Injectable()
 export class EventsService {
@@ -24,6 +26,37 @@ export class EventsService {
           }
         : {},
     });
+  }
+
+  async findAllInCategory(filters: { category?: string }) {
+    const category = filters.category?.toUpperCase();
+    const categories = Object.values(EventCategory) as string[];
+
+    if (category && !categories.includes(category)) {
+      throw new BadRequestException('Unknown event category');
+    }
+
+    return this.prismaService.event.findMany({
+      where: category ? { categories: { has: category as EventCategory } } : {},
+    });
+  }
+
+  /**
+   * Turns what the user sent into what we store: de-duplicated, with "OTHER"
+   * standing alone and an empty selection falling back to "OTHER".
+   */
+  private resolveCategories(categories?: EventCategory[]): EventCategory[] {
+    const selected = [...new Set(categories ?? [])];
+
+    if (selected.length === 0) return [EventCategory.OTHER];
+
+    if (selected.includes(EventCategory.OTHER) && selected.length > 1) {
+      throw new BadRequestException(
+        `"${EventCategory.OTHER}" cannot be combined with other categories`,
+      );
+    }
+
+    return selected;
   }
 
   //   //Find single event by id
@@ -61,6 +94,31 @@ export class EventsService {
         CoverImage: dto.coverImage,
         slug: generateEventSlug(dto.title, new Date(dto.startDate)),
         organizerId,
+        categories: this.resolveCategories(dto.categories),
+      },
+    });
+  }
+
+
+  //Publish event
+  async publish(eventId: string, userId: string) {
+    const event = await this.prismaService.event.findFirst({
+      where: {
+        id: eventId,
+        organizerId: userId,
+      },
+    });
+  
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+  
+    return this.prismaService.event.update({
+      where: {
+        id: eventId,
+      },
+      data: {
+        status: 'PUBLISHED',
       },
     });
   }

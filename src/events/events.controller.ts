@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -19,9 +18,10 @@ import { UpdateEventDTO } from './dto/update-event-dto.js';
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
-  //GET '/events
+  //GET '/events' - optional ?q= text search and ?category= filter
   @Get()
-  findAll(@Query('q') q: string) {
+  findAll(@Query('q') q?: string, @Query('category') category?: string) {
+    if (category) return this.eventsService.findAllInCategory({ category });
     return this.eventsService.findAll(q);
   }
 
@@ -37,6 +37,18 @@ export class EventsController {
   create(@Body() dto: CreateEventDto, @CurrentUser('id') organizerId: string) {
     return this.eventsService.create(dto, organizerId);
   }
+
+  //Publish event 
+  @Post(':id')
+  @UseGuards(AuthGuard)
+  publish( @Param('id') id: string,
+  @Body() dto: UpdateEventDTO,
+  @CurrentUser('id') organizerId: string,
+) {
+  return this.eventsService.publish(id, organizerId);
+}
+
+  
 
   //PUT update single event '/events/:id'
   @Put(':id')
