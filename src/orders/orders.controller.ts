@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiParam } from '@nestjs/swagger';
 
 import { OrdersService } from './orders.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
+import { ListOrdersDto } from './dto/list-orders.dto.js';
 import { OrderResponse } from './dto/order.response.js';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
@@ -13,19 +14,50 @@ import { ApiControllerTag } from '../common/decorators/api-controller-tag.decora
 import {
   ApiCreate,
   ApiGet,
+  ApiPaginatedList,
 } from '../common/decorators/api-operation.decorator.js';
 import {
   ApiConflict,
   ApiNotFound,
+  ApiValidationError,
 } from '../common/decorators/api-error.decorator.js';
+
+const { items: _orderItems, ...orderListExample } = orderExample;
+
+@UseGuards(AuthGuard)
 
 @ApiControllerTag('Orders')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+
+  // GET '/orders/'
+  @Get()
+  @ApiPaginatedList({
+    summary: 'List your orders',
+    description:
+      'Returns orders owned by the signed-in user, newest first. Pass q to match the reference (case-insensitive) and status to keep one order status. Paginated with page and limit. This list is the order rows only; line items and payments come from GET /orders/:id.',
+    responseDescription: "One page of the caller's orders.",
+    model: OrderResponse,
+    example: [orderListExample],
+    protected: true,
+  })
+  @ApiValidationError(
+    'page, limit, or status failed validation.',
+    'status must be one of the following values: PENDING, PAID, EXPIRED, CANCELLED, REFUNDED',
+  )
+  findAll(
+    @CurrentUser('id') userId: string,
+    @Query() query: ListOrdersDto,
+  ) {
+    return this.ordersService.findAll(userId, query);
+  }
+
+
+  // GET '/orders/:id'
+
   @Get(':id')
-  @UseGuards(AuthGuard)
   @ApiGet({
     summary: 'Get an order',
     description:
@@ -48,8 +80,10 @@ export class OrdersController {
     return this.ordersService.findOne(id, userId);
   }
 
+
+    // POST '/orders/:id'
+
   @Post()
-  @UseGuards(AuthGuard)
   @ApiCreate({
     summary: 'Create an order',
     description:

@@ -9,6 +9,7 @@ import { EventsModule } from './events/events.module.js';
 import { EventCategoryModule } from './event-category/event-category.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
 import { OrdersModule } from './orders/orders.module.js';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { OrdersModule } from './orders/orders.module.js';
     EventCategoryModule,
     TicketsModule,
     OrdersModule,
+    ScheduleModule.forRoot()
   ],
   controllers: [AppController],
   providers: [AppService],
