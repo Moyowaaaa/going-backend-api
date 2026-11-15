@@ -120,4 +120,25 @@ export class TicketsService {
       },
     });
   }
+
+
+  //Delete event ticket
+  async delete(ticketId:string, eventId: string){
+    const ticket = await this.prismaService.ticketType.findFirst({
+        where:{
+            id:ticketId,
+            eventId:eventId
+        }
+    })
+
+    if (!ticket) {
+        throw new NotFoundException('Event not found');
+      }
+
+      await this.prismaService.ticketType.delete({
+        where:{
+            id: ticketId,
+        }
+      })
+  }
 }

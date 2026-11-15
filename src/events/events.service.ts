@@ -6,8 +6,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { UpdateEventDTO } from './dto/update-event-dto.js';
-import { CreateEventDto } from './dto/create-event-dto.js';
+import { UpdateEventDTO } from './dto/update-event.dto.js';
+import { CreateEventDto } from './dto/create-event.dto.js';
 import { generateEventSlug } from '../common/utils/slug.util.js';
 import { EventCategory } from '../generated/prisma/enums.js';
 

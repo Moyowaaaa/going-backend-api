@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
 import { TransformInterceptor } from './utils/transform.interceptor.js';
+import { setupSwagger } from './common/swagger/setup-swagger.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,6 +15,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalInterceptors(new TransformInterceptor());
+  setupSwagger(app);
   await app.listen(process.env.PORT ?? 4000);
 }
 await bootstrap();
