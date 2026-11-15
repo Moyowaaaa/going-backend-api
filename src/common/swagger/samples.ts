@@ -12,6 +12,15 @@ export const samples = {
   endDate: '2026-11-20T23:00:00.000Z',
 } as const;
 
+export const paginationMetaExample = {
+  total: 125,
+  page: 1,
+  limit: 20,
+  totalPages: 7,
+  hasNextPage: true,
+  hasPreviousPage: false,
+};
+
 export const registeredUserExample = {
   id: samples.userId,
   email: samples.email,
@@ -80,6 +89,7 @@ export const ticketExample = {
   currency: 'NGN',
   quantity: 200,
   sold: 0,
+  reserved: 0,
   salesStart: '2026-11-15T00:00:00.000Z',
   salesEnd: '2026-11-20T17:00:00.000Z',
   eventId: samples.eventId,
@@ -92,3 +102,27 @@ export const publishedTicketExample = {
   ...ticketExample,
   status: 'PUBLISHED',
 };
+
+export const orderExample = {
+  id: '6b2f9c41-2d7e-4a83-b0c5-9e8f7a6b5c4d',
+  reference: '0f8e7d6c-5b4a-4321-9876-543210fedcba',
+  userId: samples.userId,
+  status: 'PENDING',
+  total: 30000,
+  currency: 'NGN',
+  expiresAt: '2026-11-15T15:15:00.000Z',
+  items: [
+    {
+      id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+      orderId: '6b2f9c41-2d7e-4a83-b0c5-9e8f7a6b5c4d',
+      ticketTypeId: samples.ticketId,
+      quantity: 2,
+      unitPrice: 15000,
+      subtotal: 30000,
+      createdAt: samples.createdAt,
+    },
+  ],
+  createdAt: samples.createdAt,
+  updatedAt: samples.createdAt,
+};
+

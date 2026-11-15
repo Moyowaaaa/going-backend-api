@@ -10,81 +10,96 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiParam } from '@nestjs/swagger';
 import { EventsService } from './events.service.js';
-import { AuthGuard } from '../auth/guards/auth.guards.js';
+import { AuthGuard, OptionalAuthGuard } from '../auth/guards/auth.guards.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
 import { UpdateEventDTO } from './dto/update-event.dto.js';
-import { EventCategory } from '../generated/prisma/enums.js';
+import { ListEventsDto } from './dto/list-events.dto.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 import {
   ApiErrorExamples,
   ApiErrorResponse,
-  ApiProtected,
 } from '../common/swagger/api-error.js';
-import { ApiWrappedResponse } from '../common/swagger/api-wrapped-response.js';
 import {
   eventExample,
   publishedEventExample,
   updatedEventExample,
 } from '../common/swagger/samples.js';
 import { EventResponse } from './dto/event.response.js';
+import { ApiControllerTag } from '../common/decorators/api-controller-tag.decorator.js';
+import {
+  ApiCreate,
+  ApiDelete,
+  ApiGet,
+  ApiOptionalAuth,
+  ApiPaginatedList,
+  ApiUpdate,
+} from '../common/decorators/api-operation.decorator.js';
+import {
+  ApiNotFound,
+  ApiValidationError,
+} from '../common/decorators/api-error.decorator.js';
 
-@ApiTags('Events')
+@ApiControllerTag('Events')
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  @ApiOperation({
+  @UseGuards(OptionalAuthGuard)
+  @ApiOptionalAuth()
+  @ApiPaginatedList({
     summary: 'List events',
     description:
-      'Returns every event, including drafts. Pass q to match the title (case-insensitive). Pass category to filter by category instead; when category is present, q is ignored. Results are not paginated.',
-  })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description: 'Case-insensitive substring matched against the event title.',
-    example: 'jazz',
-  })
-  @ApiQuery({
-    name: 'category',
-    required: false,
-    description:
-      'Category filter. Replaces the title search when it is present.',
-    enum: Object.values(EventCategory),
-    example: EventCategory.MUSIC,
-  })
-  @ApiWrappedResponse({
-    status: HttpStatus.OK,
-    description: 'Matching events.',
+      'Returns published, cancelled and completed events, newest first. An anonymous caller never sees drafts; a signed-in caller also sees the drafts they organize. A Bearer token, when sent, must be valid. Pass q to match the title (case-insensitive). Pass category to filter by category instead; when category is present, q is ignored. Paginated with page and limit; order is createdAt descending, then id.',
+    responseDescription: 'One page of matching events.',
     model: EventResponse,
-    isArray: true,
     example: [eventExample],
   })
   @ApiErrorResponse(
     HttpStatus.BAD_REQUEST,
-    'category is not one of the known event categories.',
+    'category is not one of the known event categories, or page/limit failed validation.',
     'Unknown event category',
     'Bad Request',
   )
-  findAll(@Query('q') q?: string, @Query('category') category?: string) {
-    if (category) return this.eventsService.findAllInCategory({ category });
-    return this.eventsService.findAll(q);
+  findAll(@Query() query: ListEventsDto, @CurrentUser('id') userId?: string) {
+    if (query.category) {
+      return this.eventsService.findAllInCategory(query, userId);
+    }
+    return this.eventsService.findAll(query, userId);
+  }
+
+  @Get('mine')
+  @UseGuards(AuthGuard)
+  @ApiPaginatedList({
+    summary: 'List the signed-in organizer events',
+    description:
+      'Returns every event owned by the signed-in user, drafts included, newest first. Paginated with page and limit; order is createdAt descending, then id.',
+    responseDescription: 'One page of the organizer events.',
+    model: EventResponse,
+    example: [eventExample],
+    protected: true,
+  })
+  findMine(
+    @CurrentUser('id') organizerId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.eventsService.findMine(organizerId, pagination);
   }
 
   @Get(':slug')
-  @ApiOperation({ summary: 'Get an event by slug' })
+  @ApiGet({
+    summary: 'Get an event by slug',
+    responseDescription: 'The event.',
+    model: EventResponse,
+    example: eventExample,
+  })
   @ApiParam({
     name: 'slug',
     description: 'Unique event slug.',
     example: eventExample.slug,
-  })
-  @ApiWrappedResponse({
-    status: HttpStatus.OK,
-    description: 'The event.',
-    model: EventResponse,
-    example: eventExample,
   })
   @ApiErrorResponse(
     HttpStatus.NOT_FOUND,
@@ -98,17 +113,14 @@ export class EventsController {
 
   @Post()
   @UseGuards(AuthGuard)
-  @ApiProtected()
-  @ApiOperation({
+  @ApiCreate({
     summary: 'Create an event',
     description:
       'Creates a draft event owned by the signed-in user. The slug is generated from the title and start date. locationType defaults to PHYSICAL. coverImage is stored as CoverImage. timezone is validated and not stored. venueId and accentColor are accepted and not applied on create.',
-  })
-  @ApiWrappedResponse({
-    status: HttpStatus.CREATED,
-    description: 'Draft event created.',
+    responseDescription: 'Draft event created.',
     model: EventResponse,
     example: eventExample,
+    protected: true,
   })
   @ApiErrorExamples(HttpStatus.BAD_REQUEST, 'The body failed validation.', {
     validation: {
@@ -126,13 +138,16 @@ export class EventsController {
     return this.eventsService.create(dto, organizerId);
   }
 
-  @Post(':id')
+  @Post(':id/publish')
   @UseGuards(AuthGuard)
-  @ApiProtected()
-  @ApiOperation({
+  @ApiCreate({
     summary: 'Publish an event',
     description:
-      'Sets status to PUBLISHED when the event belongs to the signed-in user. A body is accepted and ignored.',
+      'Sets status to PUBLISHED when the event belongs to the signed-in user. No body is read.',
+    responseDescription: 'Event published.',
+    model: EventResponse,
+    example: publishedEventExample,
+    protected: true,
   })
   @ApiParam({
     name: 'id',
@@ -140,56 +155,36 @@ export class EventsController {
     format: 'uuid',
     example: eventExample.id,
   })
-  @ApiWrappedResponse({
-    status: HttpStatus.CREATED,
-    description: 'Event published.',
-    model: EventResponse,
-    example: publishedEventExample,
-  })
-  @ApiErrorResponse(
-    HttpStatus.NOT_FOUND,
+  @ApiNotFound(
     'No event with this id belongs to the signed-in user.',
     'Event not found',
-    'Not Found',
   )
-  publish(
-    @Param('id') id: string,
-    @Body() dto: UpdateEventDTO,
-    @CurrentUser('id') organizerId: string,
-  ) {
+  publish(@Param('id') id: string, @CurrentUser('id') organizerId: string) {
     return this.eventsService.publish(id, organizerId);
   }
 
   @Put(':id')
   @UseGuards(AuthGuard)
-  @ApiProtected()
-  @ApiOperation({
+  @ApiUpdate({
     summary: 'Update an event',
     description:
       'Updates an event owned by the signed-in user. Fields you omit are cleared, because the update writes each body field as given. Categories, status, and slug are left unchanged.',
+    responseDescription: 'Event updated.',
+    model: EventResponse,
+    example: updatedEventExample,
+    protected: true,
   })
   @ApiParam({
     name: 'id',
     format: 'uuid',
     example: eventExample.id,
   })
-  @ApiWrappedResponse({
-    status: HttpStatus.OK,
-    description: 'Event updated.',
-    model: EventResponse,
-    example: updatedEventExample,
-  })
-  @ApiErrorResponse(
-    HttpStatus.BAD_REQUEST,
-    'The body failed validation.',
-    ['coverImage must be a URL address'],
-    'Bad Request',
-  )
-  @ApiErrorResponse(
-    HttpStatus.NOT_FOUND,
+  @ApiValidationError('The body failed validation.', [
+    'coverImage must be a URL address',
+  ])
+  @ApiNotFound(
     'No event with this id belongs to the signed-in user.',
     'Event not found',
-    'Not Found',
   )
   update(
     @Param('id') id: string,
@@ -201,9 +196,11 @@ export class EventsController {
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  @ApiProtected()
-  @ApiOperation({
+  @ApiDelete({
     summary: 'Delete an event',
+    responseDescription: 'Event deleted.',
+    example: 'Event successfully deleted',
+    protected: true,
     description: 'Deletes an event owned by the signed-in user.',
   })
   @ApiParam({
@@ -211,16 +208,9 @@ export class EventsController {
     format: 'uuid',
     example: eventExample.id,
   })
-  @ApiWrappedResponse({
-    status: HttpStatus.OK,
-    description: 'Event deleted.',
-    example: 'Event successfully deleted',
-  })
-  @ApiErrorResponse(
-    HttpStatus.NOT_FOUND,
+  @ApiNotFound(
     'No event with this id belongs to the signed-in user.',
     'Event not found',
-    'Not Found',
   )
   delete(@Param('id') id: string, @CurrentUser('id') organizerId: string) {
     return this.eventsService.delete(organizerId, id);

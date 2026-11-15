@@ -1,13 +1,18 @@
-import { Body, Controller, Get, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { AuthGuard } from './guards/auth.guards.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import type { AuthenticatedUser } from './decorators/current-user.decorator.js';
-import { ApiErrorExamples, ApiErrorResponse, ApiProtected } from '../common/swagger/api-error.js';
-import { ApiWrappedResponse } from '../common/swagger/api-wrapped-response.js';
+import { ApiErrorExamples } from '../common/swagger/api-error.js';
 import {
   loginExample,
   profileExample,
@@ -18,61 +23,52 @@ import {
   ProfileResponse,
   RegisteredUserResponse,
 } from './dto/auth.response.js';
+import { ApiControllerTag } from '../common/decorators/api-controller-tag.decorator.js';
+import {
+  ApiCreate,
+  ApiGet,
+} from '../common/decorators/api-operation.decorator.js';
+import {
+  ApiConflict,
+  ApiValidationError,
+} from '../common/decorators/api-error.decorator.js';
 
-@ApiTags('Auth')
+@ApiControllerTag('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({
+  @ApiCreate({
     summary: 'Register a user',
     description:
       'Creates an account. The password is hashed and is not part of the response.',
-  })
-  @ApiWrappedResponse({
-    status: HttpStatus.CREATED,
-    description: 'Account created.',
+    responseDescription: 'Account created.',
     model: RegisteredUserResponse,
     example: registeredUserExample,
   })
-  @ApiErrorResponse(
-    HttpStatus.BAD_REQUEST,
-    'The body failed validation.',
-    [
-      'email must be an email',
-      'password must be longer than or equal to 8 characters',
-    ],
-    'Bad Request',
-  )
-  @ApiErrorResponse(
-    HttpStatus.CONFLICT,
+  @ApiValidationError('The body failed validation.', [
+    'email must be an email',
+    'password must be longer than or equal to 8 characters',
+  ])
+  @ApiConflict(
     'An account with this email already exists.',
     'Email already in use, please try something else',
-    'Conflict',
   )
   register(@Body() data: RegisterDto) {
     return this.authService.register(data);
   }
 
   @Post('login')
-  @ApiOperation({
+  @ApiCreate({
     summary: 'Log in',
     description:
       'Checks the email and password and returns a Bearer access token that expires in 900 seconds.',
-  })
-  @ApiWrappedResponse({
-    status: HttpStatus.CREATED,
-    description: 'Credentials accepted. The token is inside data.',
+    responseDescription: 'Credentials accepted. The token is inside data.',
     model: LoginResponse,
     example: loginExample,
   })
-  @ApiErrorResponse(
-    HttpStatus.BAD_REQUEST,
-    'The body failed validation.',
-    ['email must be an email'],
-    'Bad Request',
-  )
+  @ApiValidationError('The body failed validation.', ['email must be an email'])
   @ApiErrorExamples(
     HttpStatus.UNAUTHORIZED,
     'No account uses this email, or the password does not match.',
@@ -95,17 +91,14 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AuthGuard)
-  @ApiProtected()
-  @ApiOperation({
+  @ApiGet({
     summary: 'Current user',
     description:
       'Returns the id and email taken from the access token. It does not load the user record.',
-  })
-  @ApiWrappedResponse({
-    status: HttpStatus.OK,
-    description: 'Profile from the access token.',
+    responseDescription: 'Profile from the access token.',
     model: ProfileResponse,
     example: profileExample,
+    protected: true,
   })
   getProfile(@CurrentUser() user: AuthenticatedUser) {
     return user;

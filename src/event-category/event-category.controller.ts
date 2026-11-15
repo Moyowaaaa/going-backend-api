@@ -1,20 +1,17 @@
-import { Controller, Get, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get } from '@nestjs/common';
 import { EventCategory } from '../generated/prisma/enums.js';
-import { ApiWrappedResponse } from '../common/swagger/api-wrapped-response.js';
+import { ApiControllerTag } from '../common/decorators/api-controller-tag.decorator.js';
+import { ApiGet } from '../common/decorators/api-operation.decorator.js';
 
-@ApiTags('Event categories')
+@ApiControllerTag('Event categories')
 @Controller('event-category')
 export class EventCategoryController {
   @Get('categories')
-  @ApiOperation({
+  @ApiGet({
     summary: 'List event categories',
     description:
       'Returns the fixed category values an event can be filed under. This is not loaded from the database.',
-  })
-  @ApiWrappedResponse({
-    status: HttpStatus.OK,
-    description: 'Category values.',
+    responseDescription: 'Category values.',
     example: Object.values(EventCategory),
   })
   getCategories() {

@@ -25,13 +25,9 @@ enum EventStatus {
   COMPLETED
 }
 
-enum TicketStatus {
+enum TicketTypeStatus {
   DRAFT
   PUBLISHED
-  VALID
-  USED
-  CANCELLED
-  REFUNDED
 }
 
 enum EventType {
@@ -52,6 +48,32 @@ enum EventCategory {
   ENTERTAINMENT
   OTHER
 }
+enum IssuedTicketStatus {
+  VALID
+  USED
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  FLUTTERWAVE
+}
 
 
 // User Model
@@ -62,6 +84,8 @@ model User {
   firstName String
   lastName String
   isEmailVerified Boolean @default(false)
+
+  orders            Order[]
 
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
@@ -128,9 +152,12 @@ model TicketType {
 
   eventId     String
   event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  status      TicketStatus @default(DRAFT)
+  orderItems  OrderItem[]
+  status      TicketTypeStatus @default(DRAFT)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+reserved   Int              @default(0)
+
 
   @@unique([eventId, name])
   @@index([eventId])
@@ -140,4 +167,87 @@ model Category {
   id     String  @id @default(uuid())
   name   String  @unique
   slug   String  @unique
+}
+
+
+model Order {
+  id        String      @id @default(uuid())
+  reference String      @unique
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+
+  status    OrderStatus @default(PENDING)
+  total     Int
+  currency  String      @default("NGN")
+
+  expiresAt DateTime
+  items     OrderItem[]
+  payments  Payment[]
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+}
+
+model OrderItem {
+  id           String     @id @default(uuid())
+  orderId      String
+  order        Order      @relation(fields: [orderId], references: [id])
+
+  ticketTypeId String
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+
+  quantity     Int
+  unitPrice    Int
+  subtotal     Int
+
+  tickets      Ticket[]
+
+  createdAt    DateTime   @default(now())
+
+  @@index([orderId])
+  @@index([ticketTypeId])
+}
+
+model Payment {
+  id                String          @id @default(uuid())
+  orderId           String
+  order             Order           @relation(fields: [orderId], references: [id])
+
+  provider          PaymentProvider
+  providerReference String          @unique
+  status            PaymentStatus   @default(PENDING)
+
+  amount            Int
+  currency          String          @default("NGN")
+
+  paidAt            DateTime?
+  metadata          Json?
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model Ticket {
+  id          String             @id @default(uuid())
+  orderItemId String
+  orderItem   OrderItem          @relation(fields: [orderItemId], references: [id])
+
+  ticketNumber String            @unique
+  qrToken      String            @unique
+  status       IssuedTicketStatus @default(VALID)
+
+  attendeeName  String?
+  attendeeEmail String?
+
+  usedAt       DateTime?
+  createdAt    DateTime           @default(now())
+
+  @@index([orderItemId])
+  @@index([status])
 }

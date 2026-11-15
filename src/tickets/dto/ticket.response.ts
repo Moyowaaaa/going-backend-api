@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TicketStatus } from '../../generated/prisma/enums.js';
+import { TicketTypeStatus } from '../../generated/prisma/enums.js';
 import { ticketExample } from '../../common/swagger/samples.js';
 
 export class TicketResponse {
@@ -34,6 +34,13 @@ export class TicketResponse {
   sold: number;
 
   @ApiProperty({
+    description:
+      'Quantity held by pending orders and not yet paid for. Counts against quantity alongside sold, so availability is quantity - sold - reserved.',
+    example: ticketExample.reserved,
+  })
+  reserved: number;
+
+  @ApiProperty({
     format: 'date-time',
     nullable: true,
     example: ticketExample.salesStart,
@@ -51,8 +58,8 @@ export class TicketResponse {
   eventId: string;
 
   @ApiProperty({
-    enum: Object.values(TicketStatus),
-    enumName: 'TicketStatus',
+    enum: Object.values(TicketTypeStatus),
+    enumName: 'TicketTypeStatus',
     example: ticketExample.status,
   })
   status: string;

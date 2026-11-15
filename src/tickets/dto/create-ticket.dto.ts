@@ -1,15 +1,13 @@
 import {
   IsDateString,
-  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Length,
+  Matches,
   MaxLength,
   Min,
 } from 'class-validator';
-import { TicketStatus } from '../../generated/prisma/enums.js';
 
 export class CreateTicketDto {
   /**
@@ -31,7 +29,7 @@ export class CreateTicketDto {
   description?: string;
 
   /**
-   * Integer price in the ticket currency.
+   * Integer price in the ticket currency. Zero is a free ticket.
    * @example 15000
    */
   @IsInt()
@@ -39,12 +37,12 @@ export class CreateTicketDto {
   price: number;
 
   /**
-   * ISO 4217 currency code. Defaults to NGN when omitted.
+   * Three-letter ISO 4217 currency code. Defaults to NGN when omitted.
    * @example NGN
    */
   @IsOptional()
   @IsString()
-  @Length(3, 3)
+  @Matches(/^[A-Z]{3}$/)
   currency?: string;
 
   /**
@@ -64,18 +62,10 @@ export class CreateTicketDto {
   salesStart?: string;
 
   /**
-   * When sales close, as an ISO-8601 date-time.
+   * When sales close, as an ISO-8601 date-time. Must be later than salesStart when both are sent.
    * @example 2026-11-20T17:00:00.000Z
    */
   @IsOptional()
   @IsDateString()
   salesEnd?: string;
-
-  /**
-   * Ticket status. Defaults to DRAFT when omitted.
-   * @example DRAFT
-   */
-  @IsOptional()
-  @IsEnum(TicketStatus)
-  status?: TicketStatus;
 }

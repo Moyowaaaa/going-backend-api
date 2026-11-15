@@ -1,18 +1,17 @@
-import { Controller, Get, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service.js';
-import { ApiWrappedResponse } from './common/swagger/api-wrapped-response.js';
+import { ApiControllerTag } from './common/decorators/api-controller-tag.decorator.js';
+import { ApiGet } from './common/decorators/api-operation.decorator.js';
 
-@ApiTags('Health')
+@ApiControllerTag('Health')
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Liveness check' })
-  @ApiWrappedResponse({
-    status: HttpStatus.OK,
-    description: 'The process is up.',
+  @ApiGet({
+    summary: 'Liveness check',
+    responseDescription: 'The process is up.',
     example: 'Hello World!',
   })
   getHello(): string {

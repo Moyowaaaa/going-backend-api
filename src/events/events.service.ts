@@ -9,42 +9,85 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateEventDTO } from './dto/update-event.dto.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
 import { generateEventSlug } from '../common/utils/slug.util.js';
-import { EventCategory } from '../generated/prisma/enums.js';
+import { EventCategory, EventStatus } from '../generated/prisma/enums.js';
+import { Prisma } from '../generated/prisma/client.js';
+import { ListEventsDto } from './dto/list-events.dto.js';
+import type { PaginationDto } from '../common/dto/pagination.dto.js';
+import {
+  paginate,
+  paginationArgs,
+} from '../common/utils/pagination.util.js';
 
 @Injectable()
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
-  //Find all events
-  async findAll(q: string = '') {
-    return await this.prismaService.event.findMany({
-      where: q
-        ? {
-            title: {
-              contains: q,
-              mode: 'insensitive',
-            },
-          }
-        : {},
-    });
+
+ 
+  private async listEvents(
+    where: Prisma.EventWhereInput,
+    pagination: Partial<PaginationDto>,
+  ) {
+    const args = paginationArgs(pagination.page, pagination.limit);
+
+    const [data, total] = await this.prismaService.$transaction([
+      this.prismaService.event.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: args.skip,
+        take: args.take,
+      }),
+      this.prismaService.event.count({ where }),
+    ]);
+
+    return paginate(data, total, args);
   }
 
-  async findAllInCategory(filters: { category?: string }) {
-    const category = filters.category?.toUpperCase();
+  /**
+   * Everyone sees non-draft events; a signed-in caller also sees their own
+   * drafts. Drafts owned by anyone else never appear.
+   */
+  private visibility(userId?: string): Prisma.EventWhereInput {
+    const visible: Prisma.EventWhereInput = {
+      status: { not: EventStatus.DRAFT },
+    };
+
+    return userId
+      ? { OR: [visible, { organizerId: userId }] }
+      : visible;
+  }
+
+  async findAll(dto: ListEventsDto, userId?: string) {
+    const where: Prisma.EventWhereInput = {
+      ...this.visibility(userId),
+      ...(dto.q
+        ? { title: { contains: dto.q, mode: 'insensitive' } }
+        : {}),
+    };
+
+    return this.listEvents(where, dto);
+  }
+
+  async findAllInCategory(dto: ListEventsDto, userId?: string) {
+    const category = dto.category?.toUpperCase();
     const categories = Object.values(EventCategory) as string[];
 
     if (category && !categories.includes(category)) {
       throw new BadRequestException('Unknown event category');
     }
 
-    return this.prismaService.event.findMany({
-      where: category ? { categories: { has: category as EventCategory } } : {},
-    });
+    const where: Prisma.EventWhereInput = {
+      ...this.visibility(userId),
+      ...(category ? { categories: { has: category as EventCategory } } : {}),
+    };
+
+    return this.listEvents(where, dto);
   }
 
-  /**
-   * Turns what the user sent into what we store: de-duplicated, with "OTHER"
-   * standing alone and an empty selection falling back to "OTHER".
-   */
+  async findMine(userId: string, pagination: Partial<PaginationDto>) {
+    return this.listEvents({ organizerId: userId }, pagination);
+  }
+
+
   private resolveCategories(categories?: EventCategory[]): EventCategory[] {
     const selected = [...new Set(categories ?? [])];
 

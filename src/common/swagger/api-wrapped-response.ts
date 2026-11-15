@@ -7,6 +7,27 @@ type WrappedResponseOptions = {
   example: unknown;
   model?: Type<unknown>;
   isArray?: boolean;
+  meta?: Record<string, number | boolean>;
+};
+
+const metaSchema = {
+  type: 'object',
+  required: [
+    'total',
+    'page',
+    'limit',
+    'totalPages',
+    'hasNextPage',
+    'hasPreviousPage',
+  ],
+  properties: {
+    total: { type: 'number', example: 125 },
+    page: { type: 'number', example: 1 },
+    limit: { type: 'number', example: 20 },
+    totalPages: { type: 'number', example: 7 },
+    hasNextPage: { type: 'boolean', example: true },
+    hasPreviousPage: { type: 'boolean', example: false },
+  },
 };
 
 function schemaForExample(example: unknown) {
@@ -30,6 +51,18 @@ export function ApiWrappedResponse(options: WrappedResponseOptions) {
       : { $ref: getSchemaPath(options.model) }
     : schemaForExample(options.example);
 
+  const bodySchema = options.meta
+    ? {
+        type: 'object',
+        required: ['data', 'meta'],
+        properties: { data: dataSchema, meta: metaSchema },
+      }
+    : dataSchema;
+
+  const bodyExample = options.meta
+    ? { data: options.example, meta: options.meta }
+    : options.example;
+
   return applyDecorators(
     ...(options.model ? [ApiExtraModels(options.model)] : []),
     ApiResponse({
@@ -43,13 +76,13 @@ export function ApiWrappedResponse(options: WrappedResponseOptions) {
             properties: {
               statusCode: { type: 'number', example: options.status },
               message: { type: 'string', example: 'Success' },
-              data: dataSchema,
+              data: bodySchema,
             },
           },
           example: {
             statusCode: options.status,
             message: 'Success',
-            data: options.example,
+            data: bodyExample,
           },
         },
       },
