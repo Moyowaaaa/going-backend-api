@@ -116,7 +116,7 @@ export class EventsController {
   @ApiCreate({
     summary: 'Create an event',
     description:
-      'Creates a draft event owned by the signed-in user. The slug is generated from the title and start date. locationType defaults to PHYSICAL. coverImage is stored as CoverImage. timezone is validated and not stored. venueId and accentColor are accepted and not applied on create.',
+      'Creates a draft event owned by the signed-in user. The slug is generated from the title and start date. locationType defaults to PHYSICAL. coverImage is stored as CoverImage. timezone is validated and not stored. Send venueId to link an existing venue, or venueInput.venue with the place details picked on the client (e.g. from a Google Maps search) to create the venue with the event; sending both answers 400. accentColor is accepted and not applied on create.',
     responseDescription: 'Draft event created.',
     model: EventResponse,
     example: eventExample,

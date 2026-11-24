@@ -103,6 +103,20 @@ export const publishedTicketExample = {
   status: 'PUBLISHED',
 };
 
+export const venueExample = {
+id: samples.venueId,
+name: 'Freedom Park',
+address: '1 Independence Way, Victoria Island',
+city: 'Lagos',
+state: 'Lagos State',
+country: 'Nigeria',
+capacity: 5000,
+latitude: 6.4281,
+longitude: 3.4219,
+createdAt: samples.createdAt,
+updatedAt: samples.createdAt,
+};
+
 export const orderExample = {
   id: '6b2f9c41-2d7e-4a83-b0c5-9e8f7a6b5c4d',
   reference: '0f8e7d6c-5b4a-4321-9876-543210fedcba',

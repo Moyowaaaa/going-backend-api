@@ -128,6 +128,8 @@ export class EventsService {
 
   //Create event
   async create(dto: CreateEventDto, organizerId: string) {
+    const venueId = await this.resolveVenueId(dto);
+
     return this.prismaService.event.create({
       data: {
         title: dto.title,
@@ -138,8 +140,68 @@ export class EventsService {
         slug: generateEventSlug(dto.title, new Date(dto.startDate)),
         organizerId,
         categories: this.resolveCategories(dto.categories),
+        venueId,
       },
     });
+  }
+
+  /**
+   * Resolves the venue for an event payload. The client sends either an
+   * existing `venueId` or a nested `venue` picked from a place search; the
+   * nested form is created here so the event and its venue land together.
+   */
+  private async resolveVenueId(dto: Partial<CreateEventDto>): Promise<string | undefined> {
+    const nested = dto.venueInput;
+
+    if (dto.venueId && nested?.venue) {
+      throw new BadRequestException(
+        'Send either venueId or venue, not both',
+      );
+    }
+
+    if (nested?.venueId && nested.venue) {
+      throw new BadRequestException(
+        'Send either venueId or venue, not both',
+      );
+    }
+
+    const existingId = dto.venueId ?? nested?.venueId;
+
+    if (existingId) {
+      await this.assertVenueExists(existingId);
+      return existingId;
+    }
+
+    if (nested?.venue) {
+      const venue = await this.prismaService.venue.create({
+        data: {
+          name: nested.venue.name,
+          address: nested.venue.address,
+          city: nested.venue.city,
+          state: nested.venue.state,
+          country: nested.venue.country,
+          capacity: nested.venue.capacity,
+          latitude: nested.venue.latitude,
+          longitude: nested.venue.longitude,
+        },
+        select: { id: true },
+      });
+
+      return venue.id;
+    }
+
+    return undefined;
+  }
+
+  private async assertVenueExists(venueId: string) {
+    const venue = await this.prismaService.venue.findUnique({
+      where: { id: venueId },
+      select: { id: true },
+    });
+
+    if (!venue) {
+      throw new NotFoundException('Venue not found');
+    }
   }
 
 
@@ -185,6 +247,8 @@ export class EventsService {
       );
     }
 
+    const venueId = await this.resolveVenueId(dto);
+
     return this.prismaService.event.update({
       where: {
         id: eventId,
@@ -196,7 +260,7 @@ export class EventsService {
         endDate: dto.endDate,
         accentColor: dto.accentColor,
         CoverImage: dto.coverImage,
-        venueId: dto.venueId,
+        venueId,
       },
     });
   }
