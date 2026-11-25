@@ -11,6 +11,7 @@ import { TicketsModule } from './tickets/tickets.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { VenuesModule } from './venues/venues.module.js';
 import { ScheduleModule } from '@nestjs/schedule';
+import { StorageModule } from './common/storage/storage.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TicketsModule,
     OrdersModule,
     VenuesModule,
+    StorageModule,
     ScheduleModule.forRoot()
   ],
   controllers: [AppController],

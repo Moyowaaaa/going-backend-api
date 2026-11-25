@@ -5,6 +5,7 @@ import {
   EventType,
 } from '../../generated/prisma/enums.js';
 import { eventExample } from '../../common/swagger/samples.js';
+import { EventImageResponse } from './event-image.response.js';
 
 export class EventResponse {
   @ApiProperty({ format: 'uuid', example: eventExample.id })
@@ -73,6 +74,15 @@ export class EventResponse {
     example: eventExample.categories,
   })
   categories: string[];
+
+  @ApiProperty({
+    type: EventImageResponse,
+    isArray: true,
+    description:
+      'Gallery images in display order. Empty until images are uploaded; the cover image is separate and lives in CoverImage.',
+    example: eventExample.images,
+  })
+  images: EventImageResponse[];
 
   @ApiProperty({ format: 'date-time', example: eventExample.createdAt })
   createdAt: string;

@@ -80,8 +80,36 @@ export const eventExample = {
   locationType: 'PHYSICAL',
   venueId: null,
   categories: ['MUSIC'],
+  images: [] as {
+    id: string;
+    eventId: string;
+    url: string;
+    position: number;
+    createdAt: string;
+  }[],
   createdAt: samples.createdAt,
   updatedAt: samples.createdAt,
+};
+
+export const galleryImageExample = {
+  id: '2f7c5b91-3a8d-42e6-b417-8c9d0e1f2a3b',
+  eventId: '8f1c2b3a-4d5e-4f70-8192-a3b4c5d6e7f8',
+  url: 'http://localhost:4000/uploads/events/8f1c2b3a-gallery-1.jpg',
+  position: 0,
+  createdAt: samples.createdAt,
+};
+
+export const eventWithImagesExample = {
+  ...eventExample,
+  images: [
+    galleryImageExample,
+    {
+      ...galleryImageExample,
+      id: '5a1e9c47-8b2f-4d63-9e80-1f2a3b4c5d6e',
+      url: 'http://localhost:4000/uploads/events/8f1c2b3a-gallery-2.jpg',
+      position: 1,
+    },
+  ],
 };
 
 export const publishedEventExample = {
@@ -94,6 +122,24 @@ export const updatedEventExample = {
   ...publishedEventExample,
   accentColor: '#1B4D3E',
   venueId: samples.venueId,
+};
+
+export const cancelledEventExample = {
+  ...publishedEventExample,
+  status: 'CANCELLED',
+  updatedAt: samples.updatedAt,
+};
+
+export const completedEventExample = {
+  ...publishedEventExample,
+  status: 'COMPLETED',
+  updatedAt: samples.updatedAt,
+};
+
+export const eventWithCoverExample = {
+  ...eventExample,
+  CoverImage: 'http://localhost:4000/uploads/events/8f1c2b3a-cover.jpg',
+  updatedAt: samples.updatedAt,
 };
 
 export const ticketExample = {

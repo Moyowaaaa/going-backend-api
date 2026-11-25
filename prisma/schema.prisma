@@ -133,6 +133,8 @@ model Event {
   description String?
   accentColor String?
   CoverImage  String?
+  /// Storage id for CoverImage, used to delete the file where the driver needs it.
+  CoverImagePublicId String?
   startDate   DateTime
   endDate     DateTime
   status      EventStatus @default(DRAFT)
@@ -141,6 +143,7 @@ model Event {
   venueId     String?
   venue       Venue?   @relation(fields: [venueId], references: [id])
   ticketTypes TicketType[]
+  images      EventImage[]
   categories  EventCategory[] @default([OTHER])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -148,6 +151,21 @@ model Event {
   @@index([status, startDate])
   @@index([organizerId])
   @@index([categories])
+}
+
+// Gallery images for an event, separate from the single cover image.
+model EventImage {
+  id     String @id @default(uuid())
+  eventId String
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  url    String
+  /// Storage id, used to delete the file where the driver needs it.
+  publicId String
+  position Int  @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId, position])
 }
 
 //TicketType Model
