@@ -48,6 +48,7 @@ enum EventCategory {
   ENTERTAINMENT
   OTHER
 }
+
 enum IssuedTicketStatus {
   VALID
   USED
@@ -75,27 +76,40 @@ enum PaymentProvider {
   FLUTTERWAVE
 }
 
-
 // User Model
 model User {
-  id String @id @default(uuid())
-  email String @unique
-  passwordHash String
-  firstName String
-  lastName String
-  isEmailVerified Boolean @default(false)
+  id               String @id @default(uuid())
+  email            String @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  isEmailVerified  Boolean @default(false)
 
-  orders            Order[]
+  orders        Order[]
+  refreshTokens RefreshToken[]
 
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+model RefreshToken {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
 
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
 
 //Venue model
 model Venue {
-  id String @id @default(uuid())
+  id         String  @id @default(uuid())
 
   name      String
   address   String
@@ -113,23 +127,24 @@ model Venue {
 
 // Event model
 model Event {
-  id           String      @id @default(uuid())
-  slug         String      @unique
-  title        String
-  description  String?
-  accentColor  String?
-  CoverImage   String?
-  startDate    DateTime
-  endDate      DateTime
-  status       EventStatus @default(DRAFT)
-  organizerId  String
-  locationType EventType   @default(PHYSICAL)
-  venueId      String?
-  venue        Venue?      @relation(fields: [venueId], references: [id])
-  ticketTypes  TicketType[]
-  categories   EventCategory[] @default([OTHER])
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  description String?
+  accentColor String?
+  CoverImage  String?
+  startDate   DateTime
+  endDate     DateTime
+  status      EventStatus @default(DRAFT)
+  organizerId String
+  locationType EventType @default(PHYSICAL)
+  venueId     String?
+  venue       Venue?   @relation(fields: [venueId], references: [id])
+  ticketTypes TicketType[]
+  categories  EventCategory[] @default([OTHER])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@index([status, startDate])
   @@index([organizerId])
   @@index([categories])
@@ -137,116 +152,115 @@ model Event {
 
 //TicketType Model
 model TicketType {
-  id          String   @id @default(uuid())
-  name        String
+  id String @id @default(uuid())
+  name String
   description String?
 
-  price       Int
-  currency    String   @default("NGN")
+  price Int
+  currency String @default("NGN")
 
-  quantity    Int
-  sold        Int      @default(0)
+  quantity Int
+  sold Int @default(0)
 
-  salesStart  DateTime?
-  salesEnd    DateTime?
+  salesStart DateTime?
+  salesEnd DateTime?
 
-  eventId     String
-  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  orderItems  OrderItem[]
-  status      TicketTypeStatus @default(DRAFT)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-reserved   Int              @default(0)
-
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  status TicketTypeStatus @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reserved Int @default(0)
 
   @@unique([eventId, name])
   @@index([eventId])
 }
+
 //Category model
 model Category {
-  id     String  @id @default(uuid())
-  name   String  @unique
-  slug   String  @unique
+  id String @id @default(uuid())
+  name String @unique
+  slug String @unique
 }
 
-
 model Order {
-  id        String      @id @default(uuid())
-  reference String      @unique
-  userId    String
-  user      User        @relation(fields: [userId], references: [id])
+  id String @id @default(uuid())
+  reference String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id])
 
-  status    OrderStatus @default(PENDING)
-  total     Int
-  currency  String      @default("NGN")
+  status OrderStatus @default(PENDING)
+  total Int
+  currency String @default("NGN")
 
   expiresAt DateTime
-  items     OrderItem[]
-  payments  Payment[]
+  items OrderItem[]
+  payments Payment[]
 
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, createdAt])
   @@index([status, expiresAt])
 }
 
 model OrderItem {
-  id           String     @id @default(uuid())
-  orderId      String
-  order        Order      @relation(fields: [orderId], references: [id])
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id])
 
   ticketTypeId String
-  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
 
-  quantity     Int
-  unitPrice    Int
-  subtotal     Int
+  quantity Int
+  unitPrice Int
+  subtotal Int
 
-  tickets      Ticket[]
+  tickets Ticket[]
 
-  createdAt    DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   @@index([orderId])
   @@index([ticketTypeId])
 }
 
 model Payment {
-  id                String          @id @default(uuid())
-  orderId           String
-  order             Order           @relation(fields: [orderId], references: [id])
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id])
 
-  provider          PaymentProvider
-  providerReference String          @unique
-  status            PaymentStatus   @default(PENDING)
+  provider PaymentProvider
+  providerReference String @unique
+  status PaymentStatus @default(PENDING)
 
-  amount            Int
-  currency          String          @default("NGN")
+  amount Int
+  currency String @default("NGN")
 
-  paidAt            DateTime?
-  metadata          Json?
+  paidAt DateTime?
+  metadata Json?
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([orderId])
   @@index([status])
 }
 
 model Ticket {
-  id          String             @id @default(uuid())
+  id String @id @default(uuid())
   orderItemId String
-  orderItem   OrderItem          @relation(fields: [orderItemId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
 
-  ticketNumber String            @unique
-  qrToken      String            @unique
-  status       IssuedTicketStatus @default(VALID)
+  ticketNumber String @unique
+  qrToken String @unique
+  status IssuedTicketStatus @default(VALID)
 
-  attendeeName  String?
+  attendeeName String?
   attendeeEmail String?
 
-  usedAt       DateTime?
-  createdAt    DateTime           @default(now())
+  usedAt DateTime?
+  createdAt DateTime @default(now())
 
   @@index([orderItemId])
   @@index([status])

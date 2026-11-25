@@ -1,9 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   loginExample,
+  logoutAllExample,
+  logoutExample,
   profileExample,
   publicUserExample,
   registeredUserExample,
+  tokenPairExample,
 } from '../../common/swagger/samples.js';
 
 export class PublicUserResponse {
@@ -50,8 +53,49 @@ export class LoginResponse {
   })
   expiresIn: number;
 
+  @ApiProperty({
+    description:
+      'Opaque refresh token, valid for 30 days. Store it securely and exchange it at POST /auth/refresh. It is rotated on every use; an old one stops working.',
+    example: loginExample.refreshToken,
+  })
+  refreshToken: string;
+
   @ApiProperty({ type: PublicUserResponse })
   user: PublicUserResponse;
+}
+
+export class TokenPairResponse {
+  @ApiProperty({
+    description: 'New JWT access token.',
+    example: tokenPairExample.accessToken,
+  })
+  accessToken: string;
+
+  @ApiProperty({ example: tokenPairExample.tokenType })
+  tokenType: string;
+
+  @ApiProperty({ example: tokenPairExample.expiresIn })
+  expiresIn: number;
+
+  @ApiProperty({
+    description:
+      'Replacement refresh token. The token sent in the request no longer works; store this one instead.',
+    example: tokenPairExample.refreshToken,
+  })
+  refreshToken: string;
+
+  @ApiProperty({ type: PublicUserResponse })
+  user: PublicUserResponse;
+}
+
+export class LogoutResponse {
+  @ApiProperty({ example: logoutExample.message })
+  message: string;
+}
+
+export class LogoutAllResponse {
+  @ApiProperty({ example: logoutAllExample.message })
+  message: string;
 }
 
 export class ProfileResponse {

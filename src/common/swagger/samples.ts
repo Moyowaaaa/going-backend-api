@@ -6,6 +6,8 @@ export const samples = {
   email: 'ada@going.example',
   accessToken:
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzYzFlOWEyMC03YjQ0LTRmMWEtOWMyZC0xMWFhMjJiYjMzY2MiLCJlbWFpbCI6ImFkYUBnb2luZy5leGFtcGxlIn0.example-signature',
+  refreshToken:
+    '9f2c41a7b6e84d3f0a5c11e9d7b2a8f4c6e0d3b1a9f7c5e2d8b4a6f0c3e1d9b7a5f2c4e8',
   createdAt: '2026-11-15T14:30:00.000Z',
   updatedAt: '2026-11-15T15:00:00.000Z',
   startDate: '2026-11-20T18:00:00.000Z',
@@ -43,8 +45,21 @@ export const loginExample = {
   accessToken: samples.accessToken,
   tokenType: 'Bearer',
   expiresIn: 900,
+  refreshToken: samples.refreshToken,
   user: publicUserExample,
 };
+
+export const tokenPairExample = {
+  accessToken: samples.accessToken,
+  tokenType: 'Bearer',
+  expiresIn: 900,
+  refreshToken: samples.refreshToken,
+  user: publicUserExample,
+};
+
+export const logoutExample = { message: 'Logged out' };
+
+export const logoutAllExample = { message: 'Logged out of all sessions' };
 
 export const profileExample = {
   id: samples.userId,
