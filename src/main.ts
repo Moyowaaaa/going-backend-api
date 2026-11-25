@@ -6,10 +6,14 @@ import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
 import { TransformInterceptor } from './utils/transform.interceptor.js';
 import { setupSwagger } from './common/swagger/setup-swagger.js';
+import { configureRawBody } from './common/http/raw-body.js';
 import { UPLOADS_DIR } from './common/storage/local-storage.service.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  bodyParser: false,
+});
+configureRawBody(app);
 
   app.enableCors({
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],

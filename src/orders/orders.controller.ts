@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiParam } from '@nestjs/swagger';
 
 import { OrdersService } from './orders.service.js';
@@ -25,14 +34,11 @@ import {
 const { items: _orderItems, ...orderListExample } = orderExample;
 
 @UseGuards(AuthGuard)
-
 @ApiControllerTag('Orders')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-
-  // GET '/orders/'
   @Get()
   @ApiPaginatedList({
     summary: 'List your orders',
@@ -54,9 +60,6 @@ export class OrdersController {
     return this.ordersService.findAll(userId, query);
   }
 
-
-  // GET '/orders/:id'
-
   @Get(':id')
   @ApiGet({
     summary: 'Get an order',
@@ -67,11 +70,7 @@ export class OrdersController {
     example: orderExample,
     protected: true,
   })
-  @ApiParam({
-    name: 'id',
-    format: 'uuid',
-    example: orderExample.id,
-  })
+  @ApiParam({ name: 'id', format: 'uuid', example: orderExample.id })
   @ApiNotFound(
     'No order with this id belongs to the signed-in user.',
     'Order not found.',
@@ -79,9 +78,6 @@ export class OrdersController {
   findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.ordersService.findOne(id, userId);
   }
-
-
-    // POST '/orders/:id'
 
   @Post()
   @ApiCreate({
@@ -144,5 +140,27 @@ export class OrdersController {
   )
   create(@CurrentUser('id') userId: string, @Body() dto: CreateOrderDto) {
     return this.ordersService.create(userId, dto);
+  }
+
+  @Post(':id/cancel')
+  @ApiCreate({
+    summary: 'Cancel a pending order',
+    description:
+      'Releases the reserved ticket quantities immediately. Paid, expired and already cancelled orders cannot be cancelled.',
+    responseDescription: 'Cancellation result.',
+    example: { message: 'Order cancelled' },
+    protected: true,
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiNotFound('Order not found.', 'Order not found.')
+  @ApiConflict(
+    'The reservation could not be released.',
+    'Could not release the reservation for this order.',
+  )
+  cancel(
+    @Param('id', ParseUUIDPipe) orderId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.ordersService.cancel(orderId, userId);
   }
 }
