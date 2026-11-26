@@ -9,25 +9,29 @@ import {
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { LogoutDto, RefreshDto } from './dto/refresh.dto.js';
 import { AuthGuard } from './guards/auth.guards.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import type { AuthenticatedUser } from './decorators/current-user.decorator.js';
 import { ApiErrorExamples } from '../common/swagger/api-error.js';
 import {
   loginExample,
+  logoutAllExample,
+  logoutExample,
   profileExample,
   registeredUserExample,
+  tokenPairExample,
 } from '../common/swagger/samples.js';
 import {
   LoginResponse,
+  LogoutAllResponse,
+  LogoutResponse,
   ProfileResponse,
   RegisteredUserResponse,
+  TokenPairResponse,
 } from './dto/auth.response.js';
 import { ApiControllerTag } from '../common/decorators/api-controller-tag.decorator.js';
-import {
-  ApiCreate,
-  ApiGet,
-} from '../common/decorators/api-operation.decorator.js';
+import { ApiCreate, ApiGet } from '../common/decorators/api-operation.decorator.js';
 import {
   ApiConflict,
   ApiValidationError,
@@ -63,8 +67,8 @@ export class AuthController {
   @ApiCreate({
     summary: 'Log in',
     description:
-      'Checks the email and password and returns a Bearer access token that expires in 900 seconds.',
-    responseDescription: 'Credentials accepted. The token is inside data.',
+      'Checks the email and password and returns a Bearer access token that expires in 900 seconds, plus a refresh token valid for 30 days.',
+    responseDescription: 'Credentials accepted. The tokens are inside data.',
     model: LoginResponse,
     example: loginExample,
   })
@@ -87,6 +91,71 @@ export class AuthController {
   )
   login(@Body() data: LoginDto) {
     return this.authService.login(data);
+  }
+
+  @Post('refresh')
+  @ApiCreate({
+    summary: 'Refresh tokens',
+    description:
+      'Exchanges a refresh token for a new access token and a new refresh token. The token sent is revoked and replaced, so send the returned refreshToken next time. Reusing an already-rotated token is treated as theft: every session of that account is revoked and the request answers 401.',
+    responseDescription: 'A new token pair.',
+    model: TokenPairResponse,
+    example: tokenPairExample,
+  })
+  @ApiValidationError('The body failed validation.', [
+    'refreshToken should not be empty',
+  ])
+  @ApiErrorExamples(
+    HttpStatus.UNAUTHORIZED,
+    'The refresh token is unknown, expired, already rotated or revoked.',
+    {
+      unknown: {
+        summary: 'Unknown or revoked token',
+        message: 'Invalid refresh token',
+        error: 'Unauthorized',
+      },
+      expired: {
+        summary: 'Token past its 30-day lifetime',
+        message: 'Refresh token expired',
+        error: 'Unauthorized',
+      },
+    },
+  )
+  refresh(@Body() data: RefreshDto) {
+    return this.authService.refresh(data);
+  }
+
+  @Post('logout')
+  @UseGuards(AuthGuard)
+  @ApiCreate({
+    summary: 'Log out',
+    description:
+      'Revokes the refresh token sent in the body, ending that one session. Send no body to revoke every session of the caller instead. The current access token stays valid until it expires (at most 15 minutes).',
+    responseDescription: 'Session revoked.',
+    model: LogoutResponse,
+    example: logoutExample,
+    protected: true,
+  })
+  @ApiValidationError('The body failed validation.', [
+    'refreshToken must be a string',
+  ])
+  logout(@CurrentUser('id') userId: string, @Body() data: LogoutDto) {
+    return this.authService.logout(userId, data.refreshToken);
+  }
+
+  @Post('logout-all')
+  @UseGuards(AuthGuard)
+  @ApiCreate({
+    summary: 'Log out everywhere',
+    description:
+      'Revokes every refresh token of the caller, on every device. No body is read. Access tokens already issued stay valid until they expire (at most 15 minutes).',
+    responseDescription: 'All sessions revoked.',
+    model: LogoutAllResponse,
+    example: logoutAllExample,
+    protected: true,
+  })
+  logoutAll(@CurrentUser('id') userId: string) {
+    return this.authService.logoutAll(userId);
   }
 
   @Get('me')

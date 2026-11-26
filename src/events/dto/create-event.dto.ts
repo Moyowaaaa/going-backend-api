@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -10,8 +11,10 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
-import { EventCategory } from '../../generated/prisma/enums.js';
+import { EventCategory, EventType } from '../../generated/prisma/enums.js';
+import { EventVenueDto } from '../../venues/dto/venue-input.dto.js';
 
 export const MAX_EVENT_CATEGORIES = 5;
 
@@ -51,6 +54,15 @@ export class CreateEventDto {
   endDate: string;
 
   /**
+   * Whether the event happens at a physical venue or online.
+   * Defaults to PHYSICAL when omitted.
+   * @example VIRTUAL
+   */
+  @IsOptional()
+  @IsEnum(EventType)
+  locationType?: EventType;
+
+  /**
    * IANA timezone name. Accepted on the request and not stored on the event.
    * @example Africa/Lagos
    */
@@ -73,6 +85,16 @@ export class CreateEventDto {
   @IsOptional()
   @IsUUID()
   venueId?: string;
+
+  /**
+   * Venue picked on the client (e.g. from a Google Maps place search).
+   * Send either `venueId` (link an existing venue) or `venue` (create the
+   * venue with this event), not both.
+   */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EventVenueDto)
+  venueInput?: EventVenueDto;
 
   /**
    * Accent color stored with the event. Applied on update.
