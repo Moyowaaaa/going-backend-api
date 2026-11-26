@@ -20,6 +20,7 @@ import { AuthGuard } from '../auth/guards/auth.guards.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator.js';
 import { PaymentsService } from './payments.service.js';
+import { InitializePaymentDto } from './dto/initialize-payment.dto.js';
 import {
   PaymentInitResponse,
   WebhookResponse,
@@ -45,8 +46,9 @@ export class PaymentsController {
   initialize(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) orderId: string,
+ @Body() dto: InitializePaymentDto,
   ) {
-    return this.paymentsService.initialize(user.id, orderId);
+    return this.paymentsService.initialize(user.id, orderId, dto.returnUrl);
   }
 
   @Post('webhooks/flutterwave')

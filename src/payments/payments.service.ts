@@ -52,7 +52,7 @@ export class PaymentsService {
   ) {}
 
   /** Create a payment and return the provider's checkout URL. */
-  async initialize(userId: string, orderId: string) {
+  async initialize(userId: string, orderId: string, returnUrl?: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
       include: { user: { select: { email: true } } },
@@ -82,7 +82,7 @@ export class PaymentsService {
       select: { id: true, providerReference: true },
     });
 
-    const redirectUrl = this.redirectUrl(order.reference);
+    const redirectUrl = this.redirectUrl(order.reference, returnUrl);
 
     let checkoutUrl: string;
     try {
@@ -270,17 +270,30 @@ export class PaymentsService {
     return { processed: true };
   }
 
-  private redirectUrl(orderReference: string): string {
-    const base = (
+  private redirectUrl(orderReference: string, requestedUrl?: string): string {
+    const candidate = requestedUrl?.trim();
+
+if (candidate) {
+try {
+const parsed = new URL(candidate);
+if (!parsed.protocol || !parsed.host) throw new Error('invalid');
+} catch {
+throw new BadRequestException('returnUrl must be a valid URL');
+}
+}
+
+const base = (
       process.env.PUBLIC_BASE_URL ??
       `http://localhost:${process.env.PORT ?? 4000}`
     ).replace(/\/+$/, '');
 
-    return (
+    const target = candidate ||
       process.env.PAYMENT_REDIRECT_URL ||
  process.env.FLUTTERWAVE_REDIRECT_URL ||
-      `${base}/payment/return?order=${encodeURIComponent(orderReference)}`
-    );
+      `${base}/payment/return`;
+
+const separator = target.includes('?') ? '&' : '?';
+return `${target}${separator}order=${encodeURIComponent(orderReference)}`;
   }
 
   private assertWebhookHash(provided: string | undefined): void {

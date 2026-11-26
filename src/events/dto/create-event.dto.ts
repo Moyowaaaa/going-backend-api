@@ -13,7 +13,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { EventCategory } from '../../generated/prisma/enums.js';
+import { EventCategory, EventType } from '../../generated/prisma/enums.js';
 import { EventVenueDto } from '../../venues/dto/venue-input.dto.js';
 
 export const MAX_EVENT_CATEGORIES = 5;
@@ -52,6 +52,15 @@ export class CreateEventDto {
    */
   @IsDateString()
   endDate: string;
+
+  /**
+   * Whether the event happens at a physical venue or online.
+   * Defaults to PHYSICAL when omitted.
+   * @example VIRTUAL
+   */
+  @IsOptional()
+  @IsEnum(EventType)
+  locationType?: EventType;
 
   /**
    * IANA timezone name. Accepted on the request and not stored on the event.

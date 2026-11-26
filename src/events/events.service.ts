@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateEventDTO } from './dto/update-event.dto.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
 import { generateEventSlug } from '../common/utils/slug.util.js';
-import { EventCategory, EventStatus } from '../generated/prisma/enums.js';
+import { EventCategory, EventStatus, EventType } from '../generated/prisma/enums.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { ListEventsDto } from './dto/list-events.dto.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
@@ -145,7 +145,7 @@ export class EventsService {
         startDate: dto.startDate,
         CoverImage: dto.coverImage,
         slug: generateEventSlug(dto.title, new Date(dto.startDate)),
-        organizerId,
+        organizerId, locationType: dto.locationType ?? EventType.PHYSICAL,
         categories: this.resolveCategories(dto.categories),
         venueId,
       },
@@ -337,7 +337,7 @@ export class EventsService {
         description: dto.description,
         startDate: dto.startDate,
         endDate: dto.endDate,
-        accentColor: dto.accentColor,
+        locationType: dto.locationType, accentColor: dto.accentColor,
         CoverImage: dto.coverImage,
         venueId,
       },
